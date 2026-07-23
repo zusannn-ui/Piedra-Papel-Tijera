@@ -38,7 +38,7 @@ templates = Jinja2Templates(directory=templates_dir)
 
 @app.get("/")
 async def get_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 @app.websocket("/ws/game")
 async def websocket_game(websocket: WebSocket):
