@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piedra · Papel · Tijera — Humano vs IA</title>
+    <meta name="description"
+        content="Desafía al algoritmo de predicción mental en tiempo real. Rock, Paper, Scissors vs Predictive AI con visión por computadora.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Outfit:wght@300;400;600;800;900&family=Space+Grotesk:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+
+    <!-- ══════════════════════════════════════
+         LANDING SCREEN
+    ══════════════════════════════════════ -->
+    <div id="landing-screen" class="landing-screen">
+        <button id="btn-instructions" class="brutal-btn btn-corner-instructions" title="Instrucciones">
+            <i class="fa-solid fa-circle-info"></i>
+        </button>
+
+        <!-- Fullscreen toggle button -->
+        <button id="btn-fullscreen" class="brutal-btn btn-corner-fullscreen" title="Pantalla completa">
+            <i class="fa-solid fa-expand" id="fullscreen-icon"></i>
+        </button>
+
+        <div class="landing-content">
+            <div class="landing-title-container">
+                <h1 class="landing-title">
+                    <span class="word word-piedra"><i class="fa-solid fa-hand-fist"></i> PIEDRA</span>
+                    <span class="word word-papel"><i class="fa-solid fa-hand"></i> PAPEL</span>
+                    <span class="word word-tijera"><i class="fa-solid fa-hand-scissors"></i> TIJERA</span>
+                </h1>
+                <div class="landing-subtitle">
+                    <span class="vs">vs</span> <span class="ai">PREDICTIVE AI</span>
+                </div>
+            </div>
+
+            <button id="btn-start-game" class="brutal-btn btn-start-game">
+                JUGAR AHORA <i class="fa-solid fa-play"></i>
+            </button>
+
+            <div class="landing-fullscreen-hint">
+                <i class="fa-solid fa-expand"></i> Presiona <kbd>F</kbd> para pantalla completa
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         INSTRUCTIONS MODAL
+    ══════════════════════════════════════ -->
+    <div id="instructions-modal" class="instructions-modal hidden">
+        <div class="modal-content brutal-box">
+            <button id="btn-close-modal" class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            <h2>Cómo Jugar</h2>
+            <ul>
+                <li>Enciende tu cámara web y asegúrate de estar visible.</li>
+                <li>Presiona el botón "Iniciar Ronda" o la tecla <strong>Espacio</strong> en el juego.</li>
+                <li>La IA analizará tus patrones para intentar predecir tu próximo movimiento.</li>
+                <li>Muestra a la cámara tu gesto de <strong>Piedra</strong>, <strong>Papel</strong> o <strong>Tijera</strong> en el momento justo.</li>
+                <li>¡Intenta ser impredecible y vencer a la Inteligencia Artificial!</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="app-layout">
+
+        <!-- ══════════════════════════════════════
+         HEADER SECTION
+    ══════════════════════════════════════ -->
+        <header class="header-section">
+            <div class="header-inner">
+                <div class="title-block">
+                    <div class="title-icon-wrap">
+                        <i class="fa-solid fa-hand-fist title-icon"></i>
+                    </div>
+                    <h1 class="game-title">
+                        PIEDRA · PAPEL · TIJERA
+                        <span class="title-separator">vs</span>
+                        <span class="title-ai-label">PREDICTIVE AI</span>
+                    </h1>
+                </div>
+                <div class="header-right">
+                    <div class="connection-pill" id="connection-pill">
+                        <span class="conn-dot" id="conn-dot"></span>
+                        <span class="conn-text" id="conn-text">Conectando...</span>
+                    </div>
+                    <div class="keyboard-hint">
+                        <i class="fa-regular fa-keyboard"></i>
+                        <kbd>Espacio</kbd> para jugar
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ══════════════════════════════════════
+         BATTLE ARENA (MIDDLE)
+    ══════════════════════════════════════ -->
+        <main class="arena-section">
+
+            <!-- LEFT COLUMN: Human Player -->
+            <div class="player-column human-column" id="human-column">
+                <div class="column-header human-header">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Jugador</span>
+                </div>
+
+                <div class="camera-card" id="camera-card">
+                    <!-- Live webcam feed -->
+                    <img id="webcam-feed" src="/video_feed" alt="Feed de cámara en vivo" onerror="handleCameraError()">
+
+                    <!-- Camera unavailable overlay -->
+                    <div id="camera-error-overlay" class="camera-error-overlay hidden">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <strong>Cámara no disponible</strong>
+                        <small>Verifica la conexión o que no esté en uso por otra app.</small>
+                    </div>
+
+                    <!-- Countdown overlay -->
+                    <div id="countdown-overlay" class="countdown-overlay hidden">
+                        <span id="countdown-text">3</span>
+                    </div>
+
+                    <!-- Live gesture badge (bottom-left overlay) -->
+                    <div class="gesture-badge" id="gesture-badge">
+                        <i class="fa-solid fa-hand" id="gesture-icon"></i>
+                        <span id="gesture-text">Buscando mano...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ARENA DIVIDER -->
+            <div class="arena-divider" aria-hidden="true">
+                <div class="divider-line"></div>
+                <div class="divider-vs-pill">VS</div>
+                <div class="divider-line"></div>
+            </div>
+
+            <!-- RIGHT COLUMN: Predictive AI Player -->
+            <div class="player-column ai-column" id="ai-column">
+                <div class="column-header ai-header">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>Predictive AI</span>
+                </div>
+
+                <div class="ai-card" id="ai-card">
+
+                    <!-- ── STATE 1: IDLE ────────────────────── -->
+                    <div class="ai-state" id="ai-idle">
+                        <i class="fa-solid fa-brain ai-idle-icon"></i>
+                        <span class="ai-state-label">Listo para predecir</span>
+                    </div>
+
+                    <!-- ── STATE 2: THINKING / PROCESSING ──── -->
+                    <div class="ai-state" id="ai-thinking">
+                        <div class="thinking-rig" aria-label="Procesando...">
+                            <i class="fa-solid fa-microchip think-core"></i>
+                        </div>
+                        <span class="ai-state-label thinking-label">Analizando patrones...</span>
+                    </div>
+
+                    <!-- ── STATE 3: RESULT / REVEAL ─────────── -->
+                    <div class="ai-state" id="ai-result">
+                        <div class="result-reveal-wrap" id="result-reveal-wrap">
+                            <i class="fa-solid fa-hand-fist result-move-icon" id="result-move-icon"></i>
+                        </div>
+                        <span class="ai-state-label result-move-label" id="result-move-label">PIEDRA</span>
+                    </div>
+
+                </div><!-- /.ai-card -->
+            </div><!-- /.ai-column -->
+
+        </main><!-- /.arena-section -->
+
+        <!-- ══════════════════════════════════════
+         SCOREBOARD SECTION (BOTTOM)
+    ══════════════════════════════════════ -->
+        <footer class="scoreboard-section">
+
+            <!-- Human score block -->
+            <div class="score-block human-score-block">
+                <div class="score-avatar human-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="score-info">
+                    <span class="score-label">Tú</span>
+                    <span class="score-number" id="player-score">0</span>
+                </div>
+                <div class="last-move-badge" id="player-last-move">—</div>
+            </div>
+
+            <!-- Center: result message + stats + controls -->
+            <div class="center-panel">
+                <div class="result-message-wrap" id="result-message-wrap">
+                    <span id="result-message-text">Presiona Espacio para comenzar</span>
+                </div>
+                <div class="stats-strip">
+                    <div class="stat-cell">
+                        <span class="stat-cell-label">Rondas</span>
+                        <span class="stat-cell-val" id="stat-rounds">0</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-cell-label">Empates</span>
+                        <span class="stat-cell-val" id="stat-ties">0</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-cell-label">Tú %</span>
+                        <span class="stat-cell-val" id="stat-winrate">0%</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-cell-label">IA %</span>
+                        <span class="stat-cell-val" id="stat-accuracy">0%</span>
+                    </div>
+                </div>
+                <div class="control-strip">
+                    <button id="btn-play" class="btn btn-play">
+                        <i class="fa-solid fa-play"></i> Iniciar Ronda
+                    </button>
+                    <button id="btn-reset" class="btn btn-reset">
+                        <i class="fa-solid fa-rotate-left"></i> Reiniciar
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI score block -->
+            <div class="score-block ai-score-block">
+                <div class="last-move-badge" id="ai-last-move">—</div>
+                <div class="score-info">
+                    <span class="score-label">IA</span>
+                    <span class="score-number" id="ai-score">0</span>
+                </div>
+                <div class="score-avatar ai-avatar">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+            </div>
+
+        </footer>
+
+        <!-- Result Animation Overlay -->
+        <div id="result-animation-overlay"></div>
+
+    </div><!-- /.app-layout -->
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
