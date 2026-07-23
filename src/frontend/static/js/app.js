@@ -132,7 +132,6 @@ function applyColumnHighlight(winner) {
 // Gesture Badge
 // ══════════════════════════════════════════════════════════
 function updateGestureBadge(gesture) {
-    if (isPlaying) return; // freeze during countdown
     const meta = GESTURE_META[gesture] || GESTURE_META.NINGUNO;
     gestureIcon.className = `fa-solid ${meta.faIcon}`;
     gestureText.textContent = meta.text;

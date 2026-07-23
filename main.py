@@ -68,50 +68,54 @@ async def websocket_game(websocket: WebSocket):
                 latest_client_gesture = payload.get("gesture", "NINGUNO")
 
             elif event == "start_countdown":
-                # Step 1: Countdown broadcasting (3 -> 2 -> 1)
-                for tick in [3, 2, 1]:
+                async def run_countdown():
+                    nonlocal session_scores, last_human_move, last_outcome
+                    # Step 1: Countdown broadcasting (3 -> 2 -> 1)
+                    for tick in [3, 2, 1]:
+                        await websocket.send_json({
+                            "event": "countdown",
+                            "tick": tick
+                        })
+                        await asyncio.sleep(1)
+
+                    # Step 2: Instant locking of AI Move (at tick 0, BEFORE reading human hand)
+                    ai_move = predictor.get_ai_countermove(last_human_move, last_outcome)
+
+                    # Step 3: Capture immediate human hand gesture at tick 0 (from the latest client update)
+                    human_move = latest_client_gesture
+
+                    # Step 4: Evaluate winner and details
+                    result = evaluate_round(human_move, ai_move)
+                    winner = result["winner"]
+
+                    # Step 5: Asynchronously push state to Markov predictor
+                    if human_move in ["PIEDRA", "PAPEL", "TIJERA"]:
+                        predictor.update(last_human_move, last_outcome, human_move)
+                        
+                        # Advance session memory
+                        last_human_move = human_move
+                        last_outcome = winner
+
+                    # Update session score
+                    if winner == "human":
+                        session_scores["human"] += 1
+                    elif winner == "ai":
+                        session_scores["ai"] += 1
+                    else:
+                        session_scores["ties"] += 1
+
+                    # Send comprehensive round results to client
                     await websocket.send_json({
-                        "event": "countdown",
-                        "tick": tick
+                        "event": "round_result",
+                        "tick": 0,
+                        "human_move": human_move,
+                        "ai_move": ai_move,
+                        "winner": winner,
+                        "message": result["message"],
+                        "scores": session_scores
                     })
-                    await asyncio.sleep(1)
 
-                # Step 2: Instant locking of AI Move (at tick 0, BEFORE reading human hand)
-                ai_move = predictor.get_ai_countermove(last_human_move, last_outcome)
-
-                # Step 3: Capture immediate human hand gesture at tick 0 (from the latest client update)
-                human_move = latest_client_gesture
-
-                # Step 4: Evaluate winner and details
-                result = evaluate_round(human_move, ai_move)
-                winner = result["winner"]
-
-                # Step 5: Asynchronously push state to Markov predictor
-                if human_move in ["PIEDRA", "PAPEL", "TIJERA"]:
-                    predictor.update(last_human_move, last_outcome, human_move)
-                    
-                    # Advance session memory
-                    last_human_move = human_move
-                    last_outcome = winner
-
-                # Update session score
-                if winner == "human":
-                    session_scores["human"] += 1
-                elif winner == "ai":
-                    session_scores["ai"] += 1
-                else:
-                    session_scores["ties"] += 1
-
-                # Send comprehensive round results to client
-                await websocket.send_json({
-                    "event": "round_result",
-                    "tick": 0,
-                    "human_move": human_move,
-                    "ai_move": ai_move,
-                    "winner": winner,
-                    "message": result["message"],
-                    "scores": session_scores
-                })
+                asyncio.create_task(run_countdown())
 
             elif event == "reset_scores":
                 session_scores = {"human": 0, "ai": 0, "ties": 0}
