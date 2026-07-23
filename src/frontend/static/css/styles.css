@@ -291,11 +291,26 @@ kbd {
     transition: background var(--fast) var(--ease);
 }
 
-#webcam-feed {
+#webcam-feed, #output-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+#webcam-feed {
+    /* Mirror the webcam */
+    transform: scaleX(-1);
+}
+
+#output-canvas {
+    /* Mirror canvas so drawings align with the mirrored video */
+    transform: scaleX(-1);
+    z-index: 2;
+    pointer-events: none;
 }
 
 /* Camera error overlay */

@@ -327,10 +327,7 @@ function handleSocketEvent(payload) {
         case 'scores_reset':
             renderReset(payload.scores);
             break;
-
-        case 'gesture_update':
-            updateGestureBadge(payload.gesture);
-            break;
+        // Notice: We no longer receive 'gesture_update' from the server, as it's computed locally.
     }
 }
 
@@ -573,3 +570,90 @@ document.querySelectorAll('button, .btn, .brutal-btn').forEach(btn => {
     btn.addEventListener('mouseenter', AudioFX.hover);
     btn.addEventListener('click', AudioFX.click);
 });
+
+// ══════════════════════════════════════════════════════════
+// Camera & MediaPipe Hands (Client-Side CV)
+// ══════════════════════════════════════════════════════════
+const canvasElement = document.getElementById('output-canvas');
+const canvasCtx = canvasElement.getContext('2d');
+let latestLocalGesture = 'NINGUNO';
+
+// Initialize MediaPipe Hands
+const hands = new Hands({locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+}});
+
+hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.5
+});
+
+hands.onResults(onResults);
+
+const camera = new Camera(webcamFeed, {
+    onFrame: async () => {
+        await hands.send({image: webcamFeed});
+    },
+    width: 640,
+    height: 480
+});
+
+// Start the camera. If it fails, show error overlay.
+camera.start().catch(err => {
+    console.error("Camera error:", err);
+    handleCameraError();
+});
+
+function onResults(results) {
+    // Sync canvas size to video size
+    if (canvasElement.width !== webcamFeed.videoWidth) {
+        canvasElement.width = webcamFeed.videoWidth;
+        canvasElement.height = webcamFeed.videoHeight;
+    }
+    
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+    let detectedGesture = 'NINGUNO';
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        
+        // Draw landmarks
+        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+        drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+
+        // Gesture heuristic mapping (translated from Python logic)
+        if (landmarks.length >= 21) {
+            const indexOpen = landmarks[8].y < landmarks[6].y;
+            const middleOpen = landmarks[12].y < landmarks[10].y;
+            const ringOpen = landmarks[16].y < landmarks[14].y;
+            const pinkyOpen = landmarks[20].y < landmarks[18].y;
+
+            if (indexOpen && middleOpen && ringOpen && pinkyOpen) {
+                detectedGesture = 'PAPEL';
+            } else if (!indexOpen && !middleOpen && !ringOpen && !pinkyOpen) {
+                detectedGesture = 'PIEDRA';
+            } else if (indexOpen && middleOpen && !ringOpen && !pinkyOpen) {
+                detectedGesture = 'TIJERA';
+            }
+        }
+    }
+    
+    canvasCtx.restore();
+
+    // Broadcast gesture change locally and to the server
+    if (detectedGesture !== latestLocalGesture) {
+        latestLocalGesture = detectedGesture;
+        updateGestureBadge(detectedGesture);
+        
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                event: 'gesture_update',
+                gesture: detectedGesture
+            }));
+        }
+    }
+}

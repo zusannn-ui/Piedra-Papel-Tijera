@@ -15,6 +15,10 @@
         rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <!-- Styles -->
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
@@ -116,8 +120,9 @@
                 </div>
 
                 <div class="camera-card" id="camera-card">
-                    <!-- Live webcam feed -->
-                    <img id="webcam-feed" src="/video_feed" alt="Feed de cámara en vivo" onerror="handleCameraError()">
+                    <!-- Live webcam feed & overlay canvas -->
+                    <video id="webcam-feed" class="webcam-feed" autoplay playsinline></video>
+                    <canvas id="output-canvas" class="output-canvas"></canvas>
 
                     <!-- Camera unavailable overlay -->
                     <div id="camera-error-overlay" class="camera-error-overlay hidden">
